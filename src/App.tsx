@@ -17,27 +17,6 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  // Authentication states
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [authLoading, setAuthLoading] = useState<boolean>(true);
-  const [usernameInput, setUsernameInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [currentUser, setCurrentUser] = useState('');
-
-  // Orders and dashboard states
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState<boolean>(true);
-  const [filterDate, setFilterDate] = useState<string>('');
-  const [refreshCountdown, setRefreshCountdown] = useState<number>(10);
-  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
-
-  // Printing state
-  const [printPayload, setPrintPayload] = useState<{
-    order: Order;
-    mode: 'comanda' | 'ticket';
-  } | null>(null);
-
   // Helper to get local YYYY-MM-DD
   const getLocalDateString = () => {
     const d = new Date();
@@ -47,35 +26,59 @@ export default function App() {
     return `${year}-${month}-${day}`;
   };
 
-  // 1. Authentication Check
-  useEffect(() => {
+  // Authentication states
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const session = sessionStorage.getItem('maison_viii_admin_session');
+      return !!session;
+    }
+    return false;
+  });
+  const [authLoading] = useState<boolean>(false);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [currentUser, setCurrentUser] = useState(() => {
     if (typeof window !== 'undefined') {
       const session = sessionStorage.getItem('maison_viii_admin_session');
       if (session) {
         try {
           const parsed = JSON.parse(session);
-          setIsAuthenticated(true);
-          setCurrentUser(parsed.user || 'Administrador');
+          return parsed.user || 'Administrador';
         } catch (e) {
           console.error(e);
         }
       }
+    }
+    return '';
+  });
 
+  // Orders and dashboard states
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState<boolean>(true);
+  const [filterDate, setFilterDate] = useState<string>(() => getLocalDateString());
+  const [refreshCountdown, setRefreshCountdown] = useState<number>(10);
+  const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
       const dismissed = localStorage.getItem('maison_monitor_dismissed_orders');
       if (dismissed) {
         try {
-          setDismissedIds(JSON.parse(dismissed));
+          return JSON.parse(dismissed);
         } catch (e) {
           console.error(e);
         }
       }
-
-      setAuthLoading(false);
-      setFilterDate(getLocalDateString());
     }
-  }, []);
+    return [];
+  });
 
-  // 2. Fetch Orders
+  // Printing state
+  const [printPayload, setPrintPayload] = useState<{
+    order: Order;
+    mode: 'comanda' | 'ticket';
+  } | null>(null);
+
+  // Fetch Orders
   const loadOrders = async () => {
     try {
       const allOrders = await db.getOrders();
@@ -89,13 +92,13 @@ export default function App() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadOrders();
     // Auto-refresh interval
     const interval = setInterval(() => {
       loadOrders();
       setRefreshCountdown(10);
     }, 10000);
-
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
@@ -182,65 +185,69 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-[#0A0F0A] relative overflow-hidden">
-        {/* Glow Effects */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gold/5 rounded-full blur-[80px] pointer-events-none" />
+        {/* Glow Effects (Multiple colors for ambient lighting) */}
+        <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-[#1a331a]/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] bg-gold/5 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="max-w-md w-full glass-panel border border-gold/20 p-8 rounded-lg space-y-6 shadow-2xl relative z-10">
-          <div className="text-center space-y-2">
+        <div className="max-w-md w-full glass-panel border border-gold/20 p-10 rounded-2xl space-y-8 shadow-2xl relative z-10 transition-all duration-500">
+          <div className="text-center space-y-4">
             <img
               src="/logos/logo_headersinfondo_500x200.png"
               alt="Maison VIII Logo"
-              className="max-w-[200px] mx-auto filter brightness-95"
+              className="max-w-[220px] mx-auto filter brightness-95 hover:scale-[1.02] transition-transform duration-500"
             />
-            <h1 className="editorial-title text-lg tracking-widest text-gold uppercase pt-2">
-              Monitor de Pedidos
-            </h1>
-            <p className="text-xs text-crema/50 font-light">
-              Ingrese sus credenciales de administración
-            </p>
+            <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-gold/45 to-transparent mx-auto mt-2" />
+            <div className="space-y-1">
+              <h1 className="editorial-title text-xl tracking-[0.2em] text-gold-bright uppercase pt-1">
+                Monitor de Pedidos
+              </h1>
+              <p className="text-xs text-crema/40 font-light tracking-wider">
+                Ingrese sus credenciales de administración
+              </p>
+            </div>
           </div>
 
           {loginError && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{loginError}</span>
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-xs flex items-center gap-3 animate-fade-in shadow-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-400" />
+              <span className="font-medium">{loginError}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-gold uppercase tracking-wider block">
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-[10px] font-semibold text-gold/80 uppercase tracking-[0.15em] block">
                 Usuario Autorizado
               </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-crema/40">
-                  <UserIcon className="w-4 h-4" />
+              <div className="group relative flex items-center bg-[#111A11] border border-gold/15 rounded-xl px-4 py-3.5 focus-within:border-gold focus-within:ring-2 focus-within:ring-gold/15 transition-all duration-300 shadow-inner">
+                <span className="text-crema/30 group-focus-within:text-gold transition-colors pr-3">
+                  <UserIcon className="w-4.5 h-4.5" />
                 </span>
                 <input
                   type="text"
                   required
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  className="w-full bg-[#162216] border border-gold/15 rounded p-3 pl-10 text-xs text-crema placeholder-crema/25 focus:outline-none focus:border-gold transition-colors"
+                  className="w-full bg-transparent border-none p-0 text-xs text-crema placeholder-crema/20 focus:outline-none focus:ring-0 font-medium"
                   placeholder="Ej. Mario Bernard"
                 />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-gold uppercase tracking-wider block">
+            <div className="space-y-2">
+              <label className="text-[10px] font-semibold text-gold/80 uppercase tracking-[0.15em] block">
                 Contraseña
               </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-crema/40">
-                  <Lock className="w-4 h-4" />
+              <div className="group relative flex items-center bg-[#111A11] border border-gold/15 rounded-xl px-4 py-3.5 focus-within:border-gold focus-within:ring-2 focus-within:ring-gold/15 transition-all duration-300 shadow-inner">
+                <span className="text-crema/30 group-focus-within:text-gold transition-colors pr-3">
+                  <Lock className="w-4.5 h-4.5" />
                 </span>
                 <input
                   type="password"
                   required
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full bg-[#162216] border border-gold/15 rounded p-3 pl-10 text-xs text-crema placeholder-crema/25 focus:outline-none focus:border-gold transition-colors"
+                  className="w-full bg-transparent border-none p-0 text-xs text-crema placeholder-crema/20 focus:outline-none focus:ring-0 font-mono tracking-widest"
                   placeholder="••••••••"
                 />
               </div>
@@ -248,7 +255,7 @@ export default function App() {
 
             <button
               type="submit"
-              className="w-full bg-gold text-[#0A0F0A] hover:bg-gold-bright font-bold py-3.5 px-4 rounded text-xs tracking-widest uppercase transition-all duration-300 shadow-lg mt-2 cursor-pointer"
+              className="w-full bg-gradient-to-r from-gold to-[#d4af37] text-[#0A0F0A] hover:from-[#d4af37] hover:to-gold font-bold py-4 px-6 rounded-xl text-xs tracking-[0.2em] uppercase transition-all duration-300 shadow-[0_4px_20px_rgba(197,168,128,0.2)] hover:shadow-[0_8px_30px_rgba(197,168,128,0.4)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer mt-4"
             >
               Acceder al Monitor
             </button>
@@ -263,20 +270,20 @@ export default function App() {
     <>
       <div className="no-print min-h-screen flex flex-col bg-[#0A0F0A]">
         {/* Header Bar */}
-        <header className="bg-[#111A11] border-b border-gold/15 py-4 px-6 sm:px-8">
+        <header className="sticky top-0 z-50 bg-[#0A0F0A]/90 backdrop-blur-md border-b border-gold/15 py-4 px-6 sm:px-8 shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             {/* Brand Title */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4.5 group">
               <img
                 src="/logos/logo_sinfondo_500x500.png"
                 alt="Maison VIII Icon"
-                className="w-12 h-12 object-contain"
+                className="w-14 h-14 object-contain filter brightness-95 group-hover:rotate-6 transition-transform duration-500"
               />
-              <div>
-                <h1 className="editorial-title text-xl tracking-wider text-gold font-medium">
+              <div className="space-y-0.5">
+                <h1 className="editorial-title text-2xl tracking-[0.12em] text-gold-bright font-bold">
                   MAISON VIII
                 </h1>
-                <span className="text-[10px] text-crema/50 tracking-widest uppercase block mt-0.5">
+                <span className="text-[9px] text-crema/40 tracking-[0.25em] uppercase block font-light">
                   Monitor de Pedidos al Instante
                 </span>
               </div>
@@ -284,65 +291,72 @@ export default function App() {
 
             {/* Connection and AutoRefresh Status */}
             <div className="flex items-center flex-wrap gap-3 justify-center">
-              <div className="bg-[#192719] border border-gold/10 px-3 py-1.5 rounded text-[11px] flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${db.isMock ? 'bg-amber-500' : 'bg-green-500'}`} />
-                <span className="text-crema/75">
-                  Base: <strong className="text-gold">{db.isMock ? 'Local (Mock)' : 'Supabase (Real)'}</strong>
+              <div className="bg-[#111A11]/80 border border-gold/10 px-4 py-2 rounded-xl text-xs flex items-center gap-2.5 shadow-sm hover:border-gold/20 transition-all duration-300">
+                <span className="relative flex h-2 w-2">
+                  {!db.isMock && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  )}
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${db.isMock ? 'bg-amber-500' : 'bg-green-500'}`} />
+                </span>
+                <span className="text-crema/70 text-[11px] font-medium tracking-wide">
+                  Base: <strong className="text-gold-bright font-semibold">{db.isMock ? 'Local (Mock)' : 'Supabase (Real)'}</strong>
                 </span>
               </div>
 
-              <div className="bg-[#192719] border border-gold/10 px-3 py-1.5 rounded text-[11px] flex items-center gap-2">
-                <RefreshCw className="w-3.5 h-3.5 text-gold animate-spin" />
-                <span className="text-crema/75">
-                  Recargando en: <strong className="text-gold">{refreshCountdown}s</strong>
+              <div className="bg-[#111A11]/80 border border-gold/10 px-4 py-2 rounded-xl text-xs flex items-center gap-2.5 shadow-sm hover:border-gold/20 transition-all duration-300">
+                <RefreshCw className="w-3.5 h-3.5 text-gold-bright animate-spin" style={{ animationDuration: '3s' }} />
+                <span className="text-crema/70 text-[11px] font-medium tracking-wide">
+                  Recarga en: <strong className="text-gold-bright font-mono font-semibold">{refreshCountdown}s</strong>
                 </span>
               </div>
 
               <button
                 onClick={loadOrders}
                 disabled={loadingOrders}
-                className="bg-gold text-[#0A0F0A] hover:bg-gold-bright disabled:opacity-50 p-2 rounded transition-colors cursor-pointer"
+                className="bg-gradient-to-r from-gold to-[#d4af37] text-[#0A0F0A] hover:from-[#d4af37] hover:to-gold disabled:opacity-50 p-2.5 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 shadow-md cursor-pointer flex items-center justify-center"
                 title="Refrescar ahora"
               >
-                <RefreshCw className={`w-4 h-4 ${loadingOrders ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${loadingOrders ? 'animate-spin' : ''} text-[#0A0F0A]`} />
               </button>
             </div>
 
             {/* User Session & Logout */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               <div className="text-right hidden sm:block">
-                <span className="text-xs text-crema/80 block font-medium">
+                <span className="text-xs font-semibold text-crema/90 block">
                   {currentUser}
                 </span>
-                <span className="text-[9px] text-gold uppercase tracking-wider block">
+                <span className="text-[9px] text-gold-bright/80 uppercase tracking-[0.15em] block font-medium">
                   Administrador
                 </span>
               </div>
               <button
                 onClick={handleLogout}
-                className="border border-red-500/30 text-red-400 hover:bg-red-500/10 p-2.5 rounded transition-all cursor-pointer flex items-center gap-2 text-xs"
+                className="border border-red-500/20 text-red-400 hover:bg-red-500/10 hover:border-red-500/40 p-2.5 px-4 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer flex items-center gap-2 text-xs font-semibold shadow-sm"
                 title="Cerrar Sesión"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Salir</span>
+                <span>Salir</span>
               </button>
             </div>
           </div>
         </header>
 
         {/* Dashboard Actions / Date Selector */}
-        <div className="bg-[#0e160e] border-b border-gold/10 py-4 px-6 sm:px-8">
+        <div className="bg-[#0D150D]/50 border-b border-gold/10 py-5 px-6 sm:px-8 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-gold" />
+              <Calendar className="w-5 h-5 text-gold-bright" />
               <div className="flex items-center gap-2">
-                <span className="text-xs text-crema/50">Viendo pedidos de:</span>
-                <input
-                  type="date"
-                  value={filterDate}
-                  onChange={(e) => setFilterDate(e.target.value)}
-                  className="bg-[#121A12] border border-gold/20 rounded p-1.5 px-3 text-xs text-crema focus:outline-none focus:border-gold font-mono"
-                />
+                <span className="text-xs text-crema/40 tracking-wider">Viendo pedidos de:</span>
+                <div className="relative flex items-center bg-[#0C140C] border border-gold/15 rounded-xl p-2 px-3.5 text-xs text-crema focus-within:border-gold/50 focus-within:ring-2 focus-within:ring-gold/10 transition-all duration-300 font-mono">
+                  <input
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="bg-transparent border-none text-crema focus:outline-none focus:ring-0 p-0 text-xs cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
 
@@ -353,14 +367,15 @@ export default function App() {
                     setDismissedIds([]);
                     localStorage.removeItem('maison_monitor_dismissed_orders');
                   }}
-                  className="bg-transparent border border-gold/25 hover:border-gold text-gold hover:text-gold-bright text-[10px] px-2.5 py-1 rounded tracking-wider uppercase font-semibold transition-colors cursor-pointer"
+                  className="bg-transparent border border-gold/25 hover:border-gold text-gold hover:text-gold-bright hover:bg-gold/5 text-[10px] px-3.5 py-1.5 rounded-xl tracking-wider uppercase font-bold transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md"
                 >
                   Restaurar Ocultos ({dismissedIds.length})
                 </button>
               )}
-              <span>
-                Total de pedidos hoy: <strong className="text-gold font-mono text-sm">{filteredOrders.length}</strong>
-              </span>
+              <div className="bg-[#111A11]/60 border border-gold/10 px-4 py-1.5 rounded-xl flex items-center gap-2">
+                <span className="text-[11px] text-crema/50">Pedidos del día:</span>
+                <strong className="text-gold-bright font-mono text-base font-extrabold">{filteredOrders.length}</strong>
+              </div>
             </div>
           </div>
         </div>
@@ -381,86 +396,101 @@ export default function App() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredOrders.map((order) => {
+                // Status badge styling map
+                const statusColors: Record<string, string> = {
+                  pendiente: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+                  confirmado: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
+                  preparacion: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400',
+                  camino: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
+                  entregado: 'bg-green-500/10 border-green-500/20 text-green-400',
+                  cancelado: 'bg-red-500/10 border-red-500/20 text-red-400',
+                };
+                const statusClass = statusColors[order.status.toLowerCase()] || 'bg-gold/5 border-gold/25 text-gold';
+
                 return (
                   <div
                     key={order.id}
-                    className="bg-[#111A11] border border-gold/15 rounded-lg shadow-xl flex flex-col justify-between overflow-hidden hover:border-gold/30 transition-all duration-300"
+                    className="bg-gradient-to-b from-[#121E12] to-[#0E170E] border border-gold/15 rounded-2xl shadow-xl flex flex-col justify-between overflow-hidden hover:border-gold/30 hover:shadow-[0_15px_35px_rgba(0,0,0,0.5)] hover:-translate-y-1 transition-all duration-300"
                   >
                     {/* Card Header */}
-                    <div className="p-4 bg-[#162216] border-b border-gold/10 flex justify-between items-center gap-2">
+                    <div className="p-5 bg-gradient-to-r from-[#172517] to-[#121F12] border-b border-gold/10 flex justify-between items-center gap-2">
                       <div>
-                        <span className="font-mono text-gold font-bold text-sm">
+                        <span className="font-mono text-gold-bright font-extrabold text-base tracking-wide">
                           {order.order_number}
                         </span>
-                        <span className="text-[9px] text-crema/40 uppercase tracking-wider block mt-0.5">
+                        <span className="text-[10px] text-crema/45 uppercase tracking-wider block mt-0.5">
                           Fecha: {order.delivery_date}
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium border border-gold/25 bg-gold/5 text-gold capitalize">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border uppercase tracking-wider ${statusClass}`}>
                           {order.status}
                         </span>
-                        <span className="text-[9px] text-crema/40 block mt-1 flex items-center gap-1 justify-end font-mono">
-                          <Clock className="w-3 h-3 text-gold/75" />
+                        <span className="text-[10px] text-crema/50 block mt-1.5 flex items-center gap-1.5 justify-end font-mono">
+                          <Clock className="w-3.5 h-3.5 text-gold-bright/75" />
                           {order.delivery_time_slot}
                         </span>
                       </div>
                     </div>
 
                     {/* Card Body */}
-                    <div className="p-5 space-y-4 flex-grow text-xs leading-relaxed">
+                    <div className="p-6 space-y-5 flex-grow text-xs leading-relaxed">
                       {/* Client Info */}
-                      <div className="space-y-1.5 border-b border-crema/5 pb-3">
-                        <span className="text-[9px] text-gold uppercase tracking-wider font-semibold block">
+                      <div className="space-y-1 border-b border-crema/5 pb-3.5">
+                        <span className="text-[9px] text-gold/75 uppercase tracking-[0.15em] font-semibold block">
                           Cliente
                         </span>
-                        <p className="font-medium text-crema text-sm">
+                        <p className="font-bold text-crema text-base tracking-wide">
                           {order.client_name}
                         </p>
-                        <p className="text-crema/70 flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-gold/60" />
+                        <p className="text-crema/70 flex items-center gap-2 mt-1 font-medium">
+                          <Phone className="w-4 h-4 text-gold-bright/60" />
                           {order.client_phone}
                         </p>
                       </div>
 
                       {/* Delivery Address */}
-                      <div className="space-y-1.5 border-b border-crema/5 pb-3">
-                        <span className="text-[9px] text-gold uppercase tracking-wider font-semibold block">
+                      <div className="space-y-1 border-b border-crema/5 pb-3.5">
+                        <span className="text-[9px] text-gold/75 uppercase tracking-[0.15em] font-semibold block">
                           Dirección de Entrega
                         </span>
-                        <p className="text-crema/80 flex items-start gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-gold/60 mt-0.5 flex-shrink-0" />
+                        <p className="text-crema/80 flex items-start gap-2 text-[12px] leading-relaxed">
+                          <MapPin className="w-4 h-4 text-gold-bright/60 mt-0.5 flex-shrink-0" />
                           <span>{order.delivery_address}</span>
                         </p>
                         {order.delivery_instructions && (
-                          <div className="mt-1.5 bg-[#172517]/50 p-2 rounded border border-gold/5 text-[10px] text-crema/60 italic">
-                            <strong>Instrucciones:</strong> {order.delivery_instructions}
+                          <div className="mt-2.5 bg-[#172517]/80 p-3 rounded-xl border border-gold/5 text-[10px] text-crema/60 italic flex gap-2 items-start shadow-inner">
+                            <AlertCircle className="w-4 h-4 text-gold-bright/50 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <strong className="text-gold-bright/80 font-bold block mb-0.5 not-italic uppercase tracking-wider text-[8px]">Indicaciones:</strong>
+                              {order.delivery_instructions}
+                            </div>
                           </div>
                         )}
                       </div>
 
                       {/* Items */}
-                      <div className="space-y-2 border-b border-crema/5 pb-3">
-                        <span className="text-[9px] text-gold uppercase tracking-wider font-semibold block">
+                      <div className="space-y-2 border-b border-crema/5 pb-3.5">
+                        <span className="text-[9px] text-gold/75 uppercase tracking-[0.15em] font-semibold block">
                           Productos
                         </span>
-                        <div className="space-y-1.5 font-mono max-h-[120px] overflow-y-auto pr-1">
+                        <div className="bg-[#0C140C]/65 p-3.5 rounded-xl border border-gold/5 space-y-2 max-h-[135px] overflow-y-auto pr-1 shadow-inner">
                           {order.items?.map((item: OrderItem, idx: number) => {
                             const variantsText = Object.keys(item.variant_choices || {}).length > 0
                               ? ` (${Object.entries(item.variant_choices).map(([, v]) => v).join(', ')})`
                               : '';
                             return (
-                              <div key={idx} className="flex justify-between items-start text-[11px]">
-                                <span className="text-crema/85">
-                                  <strong className="text-gold mr-1">{item.quantity}x</strong> 
+                              <div key={idx} className="flex justify-between items-start text-[11px] leading-relaxed border-b border-crema/[0.02] last:border-b-0 pb-1.5 last:pb-0">
+                                <span className="text-crema/90 font-medium">
+                                  <strong className="text-gold-bright bg-gold/10 border border-gold/20 px-1.5 py-0.2 rounded text-[10px] mr-1.5 font-extrabold">{item.quantity}x</strong> 
                                   {item.product_name}
                                   {variantsText && (
-                                    <span className="block text-[9px] text-gold/60 font-sans italic">{variantsText}</span>
+                                    <span className="block text-[9.5px] text-gold-bright/60 font-sans italic mt-0.5 pl-[32px]">{variantsText}</span>
                                   )}
                                 </span>
-                                <span className="text-crema/60 ml-2">
+                                <span className="text-crema/50 font-mono font-medium ml-2">
                                   ${(item.price * item.quantity).toFixed(2)}
                                 </span>
                               </div>
@@ -471,21 +501,24 @@ export default function App() {
 
                       {/* Notes / Comments */}
                       {order.notes && (
-                        <div className="space-y-1 bg-[#1a0f0f]/30 border border-red-500/10 p-2.5 rounded text-[11px] text-crema/70">
-                          <strong className="text-red-400 block text-[9px] uppercase tracking-wider">Notas de Cocina:</strong>
-                          <p className="italic font-light">{order.notes}</p>
+                        <div className="bg-red-950/20 border border-red-500/20 p-3.5 rounded-xl text-[11px] text-red-200/90 shadow-sm flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5 animate-pulse" />
+                          <div>
+                            <strong className="text-red-400 text-[9px] uppercase tracking-[0.15em] block mb-0.5">Notas de Cocina:</strong>
+                            <p className="italic font-light">{order.notes}</p>
+                          </div>
                         </div>
                       )}
 
                       {/* Payment & Totals */}
-                      <div className="pt-1 text-[11px] space-y-1">
-                        <div className="flex justify-between text-crema/50">
+                      <div className="pt-1.5 text-[11px] space-y-1.5">
+                        <div className="flex justify-between items-center text-crema/55">
                           <span>Pago: <strong className="text-crema/80 capitalize">{order.payment_method}</strong></span>
-                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-semibold border ${
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
                             order.payment_status === 'pagado'
                               ? 'bg-green-500/10 border-green-500/20 text-green-400'
                               : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                          } uppercase`}>
+                          } uppercase tracking-wider`}>
                             {order.payment_status}
                           </span>
                         </div>
@@ -495,38 +528,38 @@ export default function App() {
                             <span>-${order.loyalty_discount.toFixed(2)}</span>
                           </div>
                         )}
-                        <div className="flex justify-between text-sm pt-1 border-t border-crema/5 font-semibold text-crema">
+                        <div className="flex justify-between items-center text-sm pt-2.5 border-t border-crema/5 font-semibold text-crema">
                           <span>Total Neto</span>
-                          <span className="text-gold font-mono font-bold">${order.total.toFixed(2)} MXN</span>
+                          <span className="text-gold-bright font-mono text-base font-extrabold bg-gold/5 border border-gold/20 px-2.5 py-1 rounded-lg">${order.total.toFixed(2)} MXN</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Card Actions */}
-                    <div className="p-4 bg-[#141f14] border-t border-gold/10 grid grid-cols-3 gap-2">
+                    <div className="p-4 bg-[#0D150D] border-t border-gold/10 grid grid-cols-3 gap-3">
                       <button
                         onClick={() => triggerPrint(order, 'comanda')}
-                        className="bg-transparent border border-gold/25 hover:border-gold text-gold hover:text-gold-bright py-2 rounded text-[10px] tracking-wider font-semibold uppercase flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        className="bg-transparent border border-gold/30 hover:border-gold hover:bg-gold/5 text-gold hover:text-gold-bright py-3 rounded-xl text-xs tracking-wider font-semibold uppercase flex items-center justify-center gap-1.5 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 cursor-pointer shadow-sm"
                         title="Imprimir comanda de cocina"
                       >
-                        <Printer className="w-3.5 h-3.5" />
+                        <Printer className="w-4 h-4" />
                         Comanda
                       </button>
 
                       <button
                         onClick={() => triggerPrint(order, 'ticket')}
-                        className="bg-gold text-[#0A0F0A] hover:bg-gold-bright py-2 rounded text-[10px] tracking-wider font-bold uppercase flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        className="bg-gradient-to-r from-gold to-[#d4af37] text-[#0A0F0A] hover:from-[#d4af37] hover:to-gold py-3 rounded-xl text-xs tracking-wider font-bold uppercase flex items-center justify-center gap-1.5 transition-all duration-300 shadow-[0_4px_12px_rgba(197,168,128,0.15)] hover:shadow-[0_6px_18px_rgba(197,168,128,0.25)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95 cursor-pointer"
                         title="Imprimir ticket de cliente"
                       >
-                        <Printer className="w-3.5 h-3.5" />
+                        <Printer className="w-4 h-4" />
                         Ticket
                       </button>
 
                       <button
                         onClick={() => handleDeleteOrder(order.id)}
-                        className="border border-red-500/20 hover:border-red-500/50 text-red-400 hover:bg-red-500/5 py-2 rounded text-[10px] tracking-wider font-semibold uppercase flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        className="bg-transparent border border-red-500/25 hover:border-red-500/50 hover:bg-red-500/10 text-red-400 hover:text-red-300 py-3 rounded-xl text-xs tracking-wider font-semibold uppercase flex items-center justify-center gap-1.5 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 cursor-pointer"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                         Borrar
                       </button>
                     </div>
@@ -620,9 +653,7 @@ export default function App() {
                   alt="Maison VIII Logo"
                   style={{ maxWidth: '40mm', margin: '0 auto 1mm auto', display: 'block', filter: 'grayscale(1) brightness(0)' }}
                 />
-                <h2 className="editorial-title text-base font-bold tracking-widest text-[#000000]">
-                  M A I S O N  V I I I
-                </h2>
+          
                 <p style={{ fontSize: '8px', letterSpacing: '0.12em', opacity: 0.8, textTransform: 'uppercase' }}>
                   EL ARTE DE CELEBRAR LO EXTRAORDINARIO
                 </p>

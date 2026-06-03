@@ -29,7 +29,7 @@ export const db = {
         .order('created_at', { ascending: false });
       if (error) throw error;
       
-      return (data || []).map((o: any) => {
+      return (data || []).map((o: Order) => {
         let delivery_instructions = o.delivery_instructions || '';
         let notes = o.notes || '';
         if (!delivery_instructions && notes.includes('[Referencias:')) {
