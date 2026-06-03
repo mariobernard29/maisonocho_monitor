@@ -1,0 +1,161 @@
+/* Maison VIII - Order Monitor Style System */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@200;300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-gold: #C5A880;
+  --color-gold-bright: #E5CFA3;
+  --color-crema: #FAF8F5;
+  --color-crema-dark: #EAE6DF;
+  --color-olive-dark: #0A0F0A;
+  --color-olive-card: #111A11;
+  --color-olive-light: #253325;
+  --font-editorial: 'Cinzel', serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'Courier Prime', monospace;
+}
+
+:root {
+  --color-olive-dark: #0A0F0A;
+  --color-olive-card: #111A11;
+  --color-olive-light: #253325;
+  --color-gold: #C5A880;
+  --color-gold-bright: #E5CFA3;
+  --color-crema: #FAF8F5;
+  --color-crema-dark: #EAE6DF;
+  --font-editorial: 'Cinzel', serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'Courier Prime', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-olive-dark);
+  color: var(--color-crema);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Typography Utilities */
+.editorial-title {
+  font-family: var(--font-editorial);
+  font-weight: 300;
+  letter-spacing: 0.05em;
+}
+
+.editorial-subtitle {
+  font-family: var(--font-editorial);
+  letter-spacing: 0.25em;
+  font-weight: 500;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-olive-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold-bright);
+}
+
+/* Glassmorphism Panel */
+.glass-panel {
+  background: rgba(17, 26, 17, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(197, 168, 128, 0.18);
+}
+
+/* Print Container Hidden by default */
+.print-section {
+  display: none;
+}
+
+/* Printing styles */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 80mm !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-section {
+    display: block !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 2mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Thermal printer structures */
+  .ticket-mode-container {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    color: #000000 !important;
+  }
+
+  .ticket-mode-container .editorial-title {
+    font-family: 'Cinzel', serif !important;
+    text-transform: uppercase !important;
+  }
+
+  .comanda-mode-container {
+    font-family: 'Courier Prime', monospace !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    color: #000000 !important;
+  }
+
+  .comanda-mode-container .qty-badge {
+    font-size: 16px !important;
+    font-weight: bold !important;
+    border: 1px solid #000000 !important;
+    padding: 0.5mm 1.5mm !important;
+    display: inline-block !important;
+    margin-right: 1.5mm !important;
+  }
+
+  .comanda-mode-container .item-row {
+    border-bottom: 1px dashed #000000;
+    padding: 2mm 0 !important;
+  }
+
+  .comanda-mode-container .item-variants {
+    font-size: 11px !important;
+    margin-top: 0.5mm !important;
+    padding-left: 5mm !important;
+  }
+
+  .ticket-divider-dashed {
+    border-top: 1px dashed #000000;
+    margin: 3mm 0;
+  }
+
+  .ticket-divider-solid {
+    border-top: 1px solid #000000;
+    margin: 3mm 0;
+  }
+}
